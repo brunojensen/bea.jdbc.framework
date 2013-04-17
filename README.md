@@ -1,2 +1,0 @@
-bea.jdbc.framework
-==================
