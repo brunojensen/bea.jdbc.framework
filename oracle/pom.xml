@@ -1,0 +1,24 @@
+<project
+    xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>br.com.bea</groupId>
+        <artifactId>bea.jdbc.framework</artifactId>
+        <version>1.0</version>
+    </parent>
+    <artifactId>bea.jdbc.framework-oracle</artifactId>
+    <name>B&amp;A Tecnologia - oracle</name>
+    <packaging>ejb</packaging>
+    <dependencies>
+        <dependency>
+            <groupId>br.com.bea</groupId>
+            <artifactId>bea.jdbc.framework-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.oracle</groupId>
+            <artifactId>ojdbc6</artifactId>
+        </dependency>
+    </dependencies>
+</project>
