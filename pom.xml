@@ -3,29 +3,23 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>br.com.bea</groupId>
-    <artifactId>bea.jdbc.framework</artifactId>
+    <groupId>org.framework</groupId>
+    <artifactId>org.jdbc.framework</artifactId>
     <version>1.0</version>
-    <name>B&amp;A Tecnologia - Framework</name>
     <packaging>pom</packaging>
-    <organization>
-        <name>B&amp;A Tecnologia em Informatica Ltda</name>
-    </organization>
-    <inceptionYear>2013</inceptionYear>
     <properties>
         <project.uuid>${project.groupId}.${project.artifactId}</project.uuid>
         <project.build.sourceEncoding>ISO-8859-1</project.build.sourceEncoding>
     </properties>
     <modules>
         <module>core</module>
-        <module>mysql</module>
         <module>oracle</module>
     </modules>
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>br.com.bea</groupId>
-                <artifactId>bea.jdbc.framework-core</artifactId>
+                <groupId>org.framework</groupId>
+                <artifactId>org.jdbc.framework-core</artifactId>
                 <version>1.0</version>
             </dependency>
             <dependency>
@@ -33,11 +27,6 @@
                 <artifactId>javaee-api</artifactId>
                 <version>6.0</version>
                 <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>com.mysql</groupId>
-                <artifactId>management</artifactId>
-                <version>1.1.6</version>
             </dependency>
             <dependency>
                 <groupId>com.oracle</groupId>

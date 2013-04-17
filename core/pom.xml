@@ -4,11 +4,11 @@
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>br.com.bea</groupId>
-        <artifactId>bea.jdbc.framework</artifactId>
+        <groupId>org.framework</groupId>
+        <artifactId>org.jdbc.framework</artifactId>
         <version>1.0</version>
     </parent>
-    <artifactId>bea.jdbc.framework-core</artifactId>
+    <artifactId>org.jdbc.framework-core</artifactId>
     <name>B&amp;A Tecnologia - core</name>
     <packaging>ejb</packaging>
     <dependencies>

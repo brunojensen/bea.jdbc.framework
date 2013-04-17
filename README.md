@@ -1,2 +1,2 @@
-bea.jdbc.framework
+org.jdbc.framework
 ==================
