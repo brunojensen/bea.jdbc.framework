@@ -38,9 +38,27 @@ public class EntityManagerImpl implements EntityManager {
     }
 
     @Override
+    public void begin() {
+        try {
+            EntityManagerImpl.getDatabase().setAutoCommit(false);
+        } catch (final Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
     public void close() {
         try {
             EntityManagerImpl.getDatabase().close();
+        } catch (final Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void commit() {
+        try {
+            EntityManagerImpl.getDatabase().commit();
         } catch (final Exception e) {
             throw new RuntimeException(e);
         }
@@ -72,7 +90,7 @@ public class EntityManagerImpl implements EntityManager {
                 statement.addBatch();
             }
             statement.executeBatch();
-            EntityManagerImpl.getDatabase().commit();
+
         } catch (final Exception ex) {
             try {
                 EntityManagerImpl.getDatabase().rollback();
@@ -102,7 +120,6 @@ public class EntityManagerImpl implements EntityManager {
 
     private <E extends Entity<?>> Statement deleteStatement(final Class<E> target) {
         try {
-            EntityManagerImpl.getDatabase().setAutoCommit(false);
             final String DELETE_STATEMENT = "DELETE FROM %s WHERE %s";
             final EntityMapper mapper = EntityMapper.get(target);
             final StringBuilder builder = new StringBuilder();
@@ -221,7 +238,6 @@ public class EntityManagerImpl implements EntityManager {
                 statement.addBatch();
             }
             statement.executeBatch();
-            EntityManagerImpl.getDatabase().commit();
         } catch (final Exception ex) {
             try {
                 EntityManagerImpl.getDatabase().rollback();
@@ -240,7 +256,6 @@ public class EntityManagerImpl implements EntityManager {
 
     private <E extends Entity<?>> Statement persistStatement(final Class<E> target) {
         try {
-            EntityManagerImpl.getDatabase().setAutoCommit(false);
             final EntityMapper mapper = EntityMapper.get(target);
             final StringBuilder columnsbuilder = new StringBuilder();
             final StringBuilder positionsbuilder = new StringBuilder();
@@ -301,6 +316,15 @@ public class EntityManagerImpl implements EntityManager {
         }
         return result;
 
+    }
+
+    @Override
+    public void rollback() {
+        try {
+            EntityManagerImpl.getDatabase().rollback();
+        } catch (final Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -392,7 +416,7 @@ public class EntityManagerImpl implements EntityManager {
     public <E extends Entity<?>> void update(final List<E> entities) {
         PreparedStatement statement = null;
         try {
-            EntityManagerImpl.getDatabase().setAutoCommit(false);
+
             for (final E e : entities) {
                 if (null == statement)
                     statement = (PreparedStatement) updateStatement(e
@@ -413,10 +437,7 @@ public class EntityManagerImpl implements EntityManager {
                 }
                 statement.addBatch();
             }
-
-            System.out.println("####### " + statement.toString());
             statement.executeBatch();
-            EntityManagerImpl.getDatabase().commit();
         } catch (final Exception ex) {
             try {
                 EntityManagerImpl.getDatabase().rollback();
@@ -435,7 +456,7 @@ public class EntityManagerImpl implements EntityManager {
 
     private <E extends Entity<?>> Statement updateStatement(final Class<E> target) {
         try {
-            EntityManagerImpl.getDatabase().setAutoCommit(false);
+
             final EntityMapper mapper = EntityMapper.get(target);
             final StringBuilder builder = new StringBuilder();
             for (final Iterator<Entry<String, FieldMapper>> iterator = mapper

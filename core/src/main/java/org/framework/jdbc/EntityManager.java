@@ -7,7 +7,11 @@ import javax.ejb.Local;
 @Local
 public interface EntityManager extends Serializable {
 
+    public void begin();
+
     public void close();
+
+    public void commit();
 
     public <E extends Entity<?>> void delete(final E entity);
 
@@ -17,9 +21,12 @@ public interface EntityManager extends Serializable {
 
     void executeCall(String call);
 
-    public <E extends Entity<?>> E find(final Class<E> target, final Serializable id);
+    public <E extends Entity<?>> E find(final Class<E> target,
+                                        final Serializable id);
 
     public Object get(final Query query);
+
+    void rollback();
 
     public <E extends Entity<?>> E save(final E entity);
 
@@ -27,7 +34,8 @@ public interface EntityManager extends Serializable {
 
     public <P extends Searchable> List<P> search(final Query query);
 
-    public List<Object[]> search(final String nativeQuery, final List<?> parameters);
+    public List<Object[]> search(final String nativeQuery,
+                                 final List<?> parameters);
 
     public <E extends Entity<?>> List<String> validate(final E entity);
 }
