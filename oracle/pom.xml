@@ -6,11 +6,11 @@
     <parent>
         <groupId>org.framework</groupId>
         <artifactId>org.jdbc.framework</artifactId>
-        <version>1.0</version>
+        <version>1.0.0</version>
     </parent>
     <artifactId>org.jdbc.framework-oracle</artifactId>
-    <name>B&amp;A Tecnologia - oracle</name>
-    <packaging>ejb</packaging>
+    <name>org.jdbc.framework - oracle</name>
+    <packaging>jar</packaging>
     <dependencies>
         <dependency>
             <groupId>org.framework</groupId>

@@ -9,8 +9,9 @@ import org.framework.jdbc.Database;
 
 public abstract class AbstractDatabase implements Database {
 
-    protected Connection connection;
-    protected DataSource dataSource;
+    protected static Connection connection;
+    protected static DataSource dataSource;
+    private static final long serialVersionUID = 1L;
 
     @Override
     public final void close() throws SQLException {
@@ -27,12 +28,14 @@ public abstract class AbstractDatabase implements Database {
     protected abstract DataSource getDataSource() throws SQLException;
 
     @Override
-    public final CallableStatement prepareCall(final String sql) throws SQLException {
+    public final CallableStatement prepareCall(final String sql)
+        throws SQLException {
         return getConnection().prepareCall(sql);
     }
 
     @Override
-    public final PreparedStatement prepareStatement(final String sql) throws SQLException {
+    public final PreparedStatement prepareStatement(final String sql)
+        throws SQLException {
         return getConnection().prepareStatement(sql);
     }
 
@@ -42,7 +45,8 @@ public abstract class AbstractDatabase implements Database {
     }
 
     @Override
-    public final void setAutoCommit(final boolean autoCommit) throws SQLException {
+    public final void setAutoCommit(final boolean autoCommit)
+        throws SQLException {
         getConnection().setAutoCommit(autoCommit);
     }
 }

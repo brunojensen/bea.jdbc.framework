@@ -35,6 +35,7 @@ final class FieldMapper {
     }
 
     Field getField() {
+        field.setAccessible(true);
         return field;
     }
 

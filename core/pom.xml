@@ -6,10 +6,10 @@
     <parent>
         <groupId>org.framework</groupId>
         <artifactId>org.jdbc.framework</artifactId>
-        <version>1.0</version>
+        <version>1.0.0</version>
     </parent>
     <artifactId>org.jdbc.framework-core</artifactId>
-    <name>B&amp;A Tecnologia - core</name>
+    <name>org.jdbc.framework - core</name>
     <packaging>ejb</packaging>
     <dependencies>
         <dependency>

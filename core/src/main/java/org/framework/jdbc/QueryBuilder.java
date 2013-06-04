@@ -1,28 +1,18 @@
-/*
-The MIT License (MIT)
-Copyright (c) 2013 B&A Tecnologia
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-documentation files (the "Software"), to deal in the Software without restriction, including without limitation
-the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
-to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions 
-of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED 
-TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF 
-CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
-IN THE SOFTWARE.
- */
+//
+// [QueryBuilder.java]
+// Originalmente parte integrante do projeto br.com.bb.framework.
+// Criado por brunojensen em Sep 27, 2012.
+//
 package org.framework.jdbc;
 
-import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import org.framework.jdbc.annotations.Table;
 
-public final class QueryBuilder implements Serializable {
+public final class QueryBuilder<S extends Searchable> implements Query {
 
     public static enum SelectType {
         COUNT("count(%s)"),
@@ -46,65 +36,228 @@ public final class QueryBuilder implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    public static synchronized QueryBuilder select() {
-        return new QueryBuilder(SelectType.DEFAULT);
+    public static synchronized <S extends Searchable> QueryBuilder<S> select() {
+        return new QueryBuilder<S>(SelectType.DEFAULT);
     }
 
-    public static synchronized QueryBuilder select(final SelectType selectType, final String propertyName) {
-        return new QueryBuilder(selectType, propertyName);
+    public static synchronized <S extends Searchable> QueryBuilder<S> select(final SelectType selectType,
+                                                                             final String propertyName) {
+        return new QueryBuilder<S>(selectType, propertyName);
     }
 
-    public static synchronized QueryBuilder select(final String... properties) {
-        return new QueryBuilder(SelectType.DEFAULT, properties);
+    public static synchronized <S extends Searchable> QueryBuilder<S> select(final String... properties) {
+        return new QueryBuilder<S>(SelectType.DEFAULT, properties);
     }
 
-    public static synchronized QueryBuilder selectDistinct() {
-        return new QueryBuilder(SelectType.DISTINCT);
+    public static synchronized <S extends Searchable> QueryBuilder<S> selectDistinct() {
+        return new QueryBuilder<S>(SelectType.DISTINCT);
     }
 
     private final List<Criteria> criterias = new ArrayList<Criteria>(0);
 
     private final List<String> groupBy = new ArrayList<String>(0);
 
-    private Limit limit;
+    private Limit limit = new Limit(null, null);
 
     private final List<String> orderBy = new ArrayList<String>(0);
 
+    @SuppressWarnings("rawtypes")
     private TargetClass principal;
 
     private final List<String> selection = new ArrayList<String>(0);
 
-    private final List<TargetClass> targetClasses = new ArrayList<TargetClass>(0);
+    private final SelectType selectType;
 
-    private final List<TargetClass> translatorClasses = new ArrayList<TargetClass>(0);
+    private final List<TargetClass<?>> targetClasses = new ArrayList<TargetClass<?>>(0);
 
-    private QueryBuilder(final SelectType selectType, final String... properties) {
+    private final List<TargetClass<?>> translatorClasses = new ArrayList<TargetClass<?>>(0);
+
+    private QueryBuilder(final SelectType selectType,
+                         final String... properties) {
+        this.selectType = selectType;
         for (final String propertie : properties)
             if (null != propertie) selection.add(propertie);
     }
 
-    String build() {
-        return "";
+    QueryBuilder<S> addTranslatorClasses(final List<TargetClass<?>> targets) {
+        translatorClasses.addAll(targets);
+        return this;
     }
 
-    public QueryBuilder from(final Class<?> target, final String alias) {
-        principal = TargetClass.set(target, alias);
+    @Override
+    public String build() {
+        return buildGroupBy(
+                            buildOrderBy(buildLimit(buildWhere(buildFrom(buildSelection(new StringBuilder()))))))
+            .toString();
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    private StringBuilder buildFrom(final StringBuilder builder) {
+        builder.append(" FROM ").append(((Class<S>) getType())
+                                            .getAnnotation(Table.class).name())
+            .append(" ").append(principal.getAlias());
+        if (!targetClasses.isEmpty()) {
+            final Iterator<TargetClass<?>> iterator = targetClasses.iterator();
+            while (iterator.hasNext()) {
+                final TargetClass targetClass = iterator.next();
+                builder.append(", ");
+                builder.append(((Class<S>) targetClass.getTarget())
+                                   .getAnnotation(Table.class).name())
+                    .append(" ").append(targetClass.getAlias());
+            }
+        }
+        return builder;
+    }
+
+    private StringBuilder buildGroupBy(final StringBuilder builder) {
+        if (!groupBy.isEmpty()) {
+            final List<TargetClass<?>> classes = new ArrayList<TargetClass<?>>(targetClasses);
+            classes.add(principal);
+            builder.append(" GROUP BY ");
+            final Iterator<String> iterator = groupBy.iterator();
+            while (iterator.hasNext()) {
+                builder.append(Translate.translate(classes, iterator.next()));
+                if (iterator.hasNext()) builder.append(", ");
+            }
+        }
+        return builder;
+    }
+
+    private StringBuilder buildLimit(final StringBuilder builder) {
+        if (null == limit.getFirstResults() && null == limit.getMaxResults())
+            return builder;
+        final StringBuilder subbuilder = new StringBuilder();
+        subbuilder.append("SELECT * FROM (")
+            .append(" SELECT ROW_NUMBER() OVER (");
+        if (!orderBy.isEmpty()) {
+            final List<TargetClass<?>> classes = new ArrayList<TargetClass<?>>(targetClasses);
+            classes.add(principal);
+            subbuilder.append(" ORDER BY ");
+            final Iterator<String> iterator = orderBy.iterator();
+            while (iterator.hasNext()) {
+                subbuilder
+                    .append(Translate.translate(classes, iterator.next()));
+                if (iterator.hasNext()) subbuilder.append(", ");
+            }
+        } else {
+            subbuilder.append("ORDER BY ");
+            final Iterator<String> iterator = EntityMapper.get(getPrincipal())
+                .getId().keySet().iterator();
+
+            while (iterator.hasNext()) {
+                final String column = iterator.next();
+                subbuilder.append(principal.getAlias()).append(".")
+                    .append(column);
+                if (iterator.hasNext()) subbuilder.append(", ");
+            }
+        }
+        subbuilder.append(" ) LIMITE, ").append(builder.toString()
+                                                    .replace("SELECT", ""))
+            .append(") WHERE LIMITE BETWEEN ").append(limit.getFirstResults()
+                                                          * limit
+                                                              .getMaxResults()
+                                                          + 1).append(" AND ")
+            .append(limit.getFirstResults() * limit.getMaxResults()
+                        + limit.getMaxResults()).append(" ORDER BY LIMITE");
+        return subbuilder;
+    }
+
+    private StringBuilder buildOrderBy(final StringBuilder builder) {
+        if (null != limit.getFirstResults() && null != limit.getMaxResults())
+            return builder;
+        if (!orderBy.isEmpty()) {
+            final List<TargetClass<?>> classes = new ArrayList<TargetClass<?>>(targetClasses);
+            classes.add(principal);
+            builder.append(" ORDER BY ");
+            final Iterator<String> iterator = orderBy.iterator();
+            while (iterator.hasNext()) {
+                builder.append(Translate.translate(classes, iterator.next()));
+                if (iterator.hasNext()) builder.append(", ");
+            }
+        }
+        return builder;
+    }
+
+    private StringBuilder buildSelection(final StringBuilder builder) {
+        final StringBuilder selectBuilder = new StringBuilder();
+        final List<TargetClass<?>> classes = new ArrayList<TargetClass<?>>(targetClasses);
+        classes.add(principal);
+        if (selection.isEmpty()) {
+            final Map<String, FieldMapper> mapa = EntityMapper
+                .get(getPrincipal()).getAllColumnsFields();
+            final Iterator<Entry<String, FieldMapper>> iterator = mapa
+                .entrySet().iterator();
+            while (iterator.hasNext()) {
+                final Entry<String, FieldMapper> entry = iterator.next();
+                selectBuilder.append(principal.getAlias()).append(".")
+                    .append(entry.getKey());
+                if (iterator.hasNext()) selectBuilder.append(", ");
+            }
+        } else if (selectType.equals(SelectType.DEFAULT)
+            || selectType.equals(SelectType.DISTINCT)) {
+            final Iterator<String> iterator = selection.iterator();
+            while (iterator.hasNext()) {
+                final String value = iterator.next();
+                selectBuilder.append(Translate.translate(classes, value));
+                if (iterator.hasNext()) selectBuilder.append(", ");
+            }
+        } else {
+            final Iterator<String> iterator = selection.iterator();
+            while (iterator.hasNext()) {
+                final String value = iterator.next();
+                selectBuilder.append(Translate.translate(classes, value));
+                if (iterator.hasNext()) selectBuilder.append(", ");
+            }
+        }
+        return builder.append(" SELECT ").append(String
+                                                     .format(selectType
+                                                                 .expression(),
+                                                             selectBuilder
+                                                                 .toString()));
+    }
+
+    private StringBuilder buildWhere(final StringBuilder builder) {
+        if (!criterias.isEmpty()) {
+            builder.append(" WHERE ");
+            final Iterator<Criteria> iterator = criterias.iterator();
+            while (iterator.hasNext()) {
+                final Criteria criterio = iterator.next();
+                builder.append(criterio.build(translatorClasses));
+                if (iterator.hasNext()) builder.append(" AND ");
+            }
+        }
+        return builder;
+    }
+
+    public QueryBuilder<S> from(final Class<S> target, final String alias) {
+        this.principal = TargetClass.<S> set(target, alias);
         translatorClasses.add(principal);
         return this;
     }
 
-    public Class<?> getPrincipal() {
+    @Override
+    public List<Object> getParameters() {
+        return getValues();
+    }
+
+    @SuppressWarnings("unchecked")
+    Class<S> getPrincipal() {
         return principal.getTarget();
     }
 
-    List<TargetClass> getTranslatorClasses() {
+    List<TargetClass<?>> getTranslatorClasses() {
         return translatorClasses;
+    }
+
+    @Override
+    public Class<?> getType() {
+        return getPrincipal();
     }
 
     public List<Object> getValues() {
         final List<Object> values = new ArrayList<Object>(0);
-        for (final Criteria criteria : criterias)
-            for (final Object value : criteria.getValues())
+        for (final Criteria criterio : criterias)
+            for (final Object value : criterio.getParameters())
                 if (value instanceof Object[])
                     for (final Object v : (Object[]) value)
                         values.add(v);
@@ -112,25 +265,28 @@ public final class QueryBuilder implements Serializable {
         return values;
     }
 
-    public QueryBuilder groupBy(final String... properties) {
+    public QueryBuilder<S> groupBy(final String... properties) {
         for (final String propertie : properties)
             if (null != propertie) groupBy.add(propertie);
         return this;
     }
 
-    public QueryBuilder join(final Class<?> target, final String alias) {
-        translatorClasses.add(TargetClass.set(target, alias));
+    public <E extends Searchable> QueryBuilder<S> join(final Class<E> target,
+                                                       final String alias) {
+        final TargetClass<E> targetClass = TargetClass.<E> set(target, alias);
+        targetClasses.add(targetClass);
+        translatorClasses.add(targetClass);
         return this;
     }
 
-    public QueryBuilder limit(final Long firstResult, final Long maxResult) {
+    public QueryBuilder<S> limit(final Long firstResult, final Long maxResult) {
         limit = new Limit(firstResult, maxResult);
         return this;
     }
 
-    public QueryBuilder orderBy(final String... properties) {
-        for (final String property : properties)
-            if (null != property) orderBy.add(property);
+    public QueryBuilder<S> orderBy(final String... properties) {
+        for (final String propertie : properties)
+            if (null != propertie) orderBy.add(propertie);
         return this;
     }
 
@@ -139,16 +295,16 @@ public final class QueryBuilder implements Serializable {
         return build();
     }
 
-    public QueryBuilder where(final Criteria... criterias) {
+    public QueryBuilder<S> where(final Criteria... criterios) {
         this.criterias.clear();
-        for (final Criteria criteria : criterias)
-            if (null != criteria) this.criterias.add(criteria);
+        for (final Criteria criterio : criterios)
+            if (null != criterio) this.criterias.add(criterio);
         return this;
     }
 
-    public QueryBuilder where(final List<Criteria> criterias) {
+    public QueryBuilder<S> where(final List<Criteria> criterios) {
         this.criterias.clear();
-        this.criterias.addAll(criterias);
+        this.criterias.addAll(criterios);
         return this;
     }
 }

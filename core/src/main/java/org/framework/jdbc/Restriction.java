@@ -1,21 +1,3 @@
-/*
-The MIT License (MIT)
-Copyright (c) 2013 B&A Tecnologia
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-documentation files (the "Software"), to deal in the Software without restriction, including without limitation
-the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
-to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions 
-of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED 
-TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF 
-CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
-IN THE SOFTWARE.
- */
 package org.framework.jdbc;
 
 import java.util.ArrayList;
@@ -159,11 +141,13 @@ public class Restriction implements Criteria {
     }
 
     @Override
-    public String build() {
+    public String build(final List<TargetClass<?>> targetClasses) {
         final StringBuilder builder = new StringBuilder();
+        final String columnName = Translate.translate(targetClasses, principalProperty);
         switch (expression) {
             case AND:
-                builder.append(String.format(expression.toString(), lcriterion.build(), rcriterion.build()));
+                builder.append(String.format(expression.toString(), lcriterion.build(targetClasses), rcriterion
+                    .build(targetClasses)));
                 break;
             case BETWEEN:
                 break;
@@ -173,22 +157,23 @@ public class Restriction implements Criteria {
                     if (i != 0) inBuilder.append(",");
                     inBuilder.append("?");
                 }
-                builder.append(principalProperty).append(String.format(Expression.IN.toString(), inBuilder.toString()));
+                builder.append(columnName).append(String.format(Expression.IN.toString(), inBuilder.toString()));
                 break;
             case IS_NOT_NULL:
-                builder.append(principalProperty).append(expression);
+                builder.append(columnName).append(expression);
                 break;
             case IS_NULL:
-                builder.append(principalProperty).append(expression);
+                builder.append(columnName).append(expression);
                 break;
             case NOT:
-                builder.append(String.format(expression.toString(), lcriterion.build()));
+                builder.append(String.format(expression.toString(), lcriterion.build(targetClasses)));
                 break;
             case OR:
-                builder.append(String.format(expression.toString(), lcriterion.build(), rcriterion.build()));
+                builder.append(String.format(expression.toString(), lcriterion.build(targetClasses), rcriterion
+                    .build(targetClasses)));
                 break;
             case LIKE:
-                builder.append(principalProperty).append(expression).append(" ? ");
+                builder.append(columnName).append(expression).append(" ? ");
                 switch (matchMode) {
                     case ANYWHERE:
                         value = new StringBuilder().append("%").append(value).append("%").toString();
@@ -202,18 +187,17 @@ public class Restriction implements Criteria {
                 }
                 break;
             default:
-                builder.append(principalProperty).append(expression).append(null == targetProperty
-                                                                                                  ? " ? "
-                                                                                                  : targetProperty);
+                builder.append(columnName).append(expression).append(null == targetProperty ? " ? " : Translate
+                                                                         .translate(targetClasses, targetProperty));
         }
         return builder.toString();
     }
 
     @Override
-    public List<Object> getValues() {
+    public List<Object> getParameters() {
         final List<Object> values = new ArrayList<Object>(0);
-        if (null != lcriterion) values.addAll(lcriterion.getValues());
-        if (null != rcriterion) values.addAll(rcriterion.getValues());
+        if (null != lcriterion) values.addAll(lcriterion.getParameters());
+        if (null != rcriterion) values.addAll(rcriterion.getParameters());
         if (null != value) values.addAll(Arrays.asList(value));
         return values;
     }
