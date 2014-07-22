@@ -350,8 +350,10 @@ public class EntityManagerImpl implements EntityManager {
         update(updates);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public <S extends Searchable> List<S> search(final Query query) {
+        final List<S> result = new LinkedList<S>();
         PreparedStatement statement = null;
         try {
             statement = EntityManagerImpl.getDatabase()
@@ -364,10 +366,7 @@ public class EntityManagerImpl implements EntityManager {
             final ResultSet resultSet = statement.getResultSet();
             if (resultSet == null)
                 throw new NullPointerException(ResultSet.class.getName());
-            @SuppressWarnings("unchecked")
-            final List<S> result = result((Class<S>) query.getType(), resultSet);
-            if (null != statement) statement.close();
-            return result;
+            result.addAll(result((Class<S>) query.getType(), resultSet));
         } catch (final Exception e) {
             throw new RuntimeException(e);
         } finally {
@@ -377,6 +376,7 @@ public class EntityManagerImpl implements EntityManager {
                 ex.printStackTrace();
             }
         }
+        return result;
     }
 
     @Override
