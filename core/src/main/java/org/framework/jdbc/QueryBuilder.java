@@ -1,8 +1,3 @@
-//
-// [QueryBuilder.java]
-// Originalmente parte integrante do projeto br.com.bb.framework.
-// Criado por brunojensen em Sep 27, 2012.
-//
 package org.framework.jdbc;
 
 import java.util.ArrayList;
